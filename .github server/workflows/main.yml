@@ -1,0 +1,26 @@
+
+name: Windows-RDP
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Setup Remote Desktop
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+      - name: Create User Account
+        run: |
+          net user runneradmin vps-password123 /add
+          net localgroup administrators runneradmin /add
+      - name: Setup Ngrok
+        run: |
+          Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+          Expand-Archive ngrok.zip
+          .\ngrok.exe authtoken 3AJYZMuhcEr6d37JWri7hiGHIPq_5oM2WEf5iUKL2MAf2ifhY
+          Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp --region jp 3389"
+      - name: Keep Alive
+        run: |
+          Write-Host "RDP is ready! Check your Ngrok dashboard for the address."
+          while($true) { Start-Sleep -Seconds 3600 }
